@@ -40,9 +40,7 @@ theorem PEqualNP.Outside.R_meta_4825_2
       have hg : C.gates.get (fA a) = C.gates.get (fO b) := congrArg C.gates.get h
       rw [← hfAop a, hg, hfOop b]
     cases hop
-  let idx : Fin n ⊕ Fin (E.card - 1) → Fin C.gates.length
-    | Sum.inl a => fA a
-    | Sum.inr b => fO b
+  let idx : Fin n ⊕ Fin (E.card - 1) → Fin C.gates.length := Sum.elim fA fO
   have hidx : Function.Injective idx := by
     intro u v huv
     cases u with
@@ -67,7 +65,9 @@ theorem PEqualNP.Outside.R_meta_4825_2
     have hle : (Finset.univ.image idx).card ≤ C.gates.length := by
       simpa [Fintype.card_fin] using Finset.card_le_univ (Finset.univ.image idx)
     have hcard : n + (E.card - 1) ≤ C.size := by
-      simpa [himg, huniv, Circuit.size] using hle
+      have hle' : n + (E.card - 1) ≤ C.gates.length := by
+        simpa [himg, huniv] using hle
+      rwa [show C.gates.length = C.size from rfl] at hle'
     omega
   have hfan : ∀ g ∈ C.gates, g.inputs.length = 2 := by
     unfold IsAO2 at hAO
@@ -86,8 +86,11 @@ theorem PEqualNP.Outside.R_meta_4825_2
         ih (fun x hx => h x (by simp [hx]))
       simp only [List.flatMap_cons, List.length_append, List.length_cons]
       omega
-  have hlen : (C.gates.flatMap Gate.inputs).length = 2 * C.size := by
-    simpa [Circuit.size] using hlenAll C.gates hfan
+  have hlen : (List.flatMap Gate.inputs C.gates).length = 2 * C.size := by
+    have h := hlenAll C.gates hfan
+    have hsz : C.gates.length = C.size := rfl
+    rw [hsz] at h
+    simpa using h
   have hcard : (C.gates.flatMap Gate.inputs).toFinset.card = n + n + C.size - 1 := by
     rw [hcover]
     exact Finset.card_range _
